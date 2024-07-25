@@ -41,7 +41,7 @@ client.on('interactionCreate', async interaction => {
             return interaction.reply('Nincs engedélye a parancs használatára.');
         }
 
-        let newLink = interaction.options.getString('lien');
+        let newLink = interaction.options.getString('link');
         if (!newLink.startsWith('http://') && !newLink.startsWith('https://')) {
             newLink = 'https://' + newLink;
         }
