@@ -2,6 +2,7 @@ const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const config = require('./config.json');
+const keep_alive = require('./keep_alive.js')
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 let allowedLinks = [];
