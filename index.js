@@ -1,4 +1,4 @@
-daconst { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
+const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const config = require('./config.json');
