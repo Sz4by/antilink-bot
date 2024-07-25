@@ -80,7 +80,7 @@ client.on('messageCreate', async message => {
             if (modLogChannel) {
                 modLogChannel.send({ embeds: [embed] });
             } else {
-                message.channel.send(`${msg.author},Canal de logs non trouvé.');
+                message.channel.send(`Canal de logs non trouvé.');
             }
         }
     }
