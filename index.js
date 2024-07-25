@@ -55,6 +55,16 @@ client.on('interactionCreate', async interaction => {
         }
     }
 });
+       const filter = msg => {
+            return !msg.author.bot && !msg.member.permissions.has('ADMINISTRATOR') && /https?:\/\/\S+/gi.test(msg.content);
+        };
+
+        const collector = message.channel.createMessageCollector({
+            filter,
+            dispose: true // Required for message deletion
+        }
+    }
+});
 
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
