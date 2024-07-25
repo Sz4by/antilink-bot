@@ -62,7 +62,7 @@ client.on('messageCreate', async message => {
         const messageLinks = message.content.match(/(https?:\/\/[^\s]+)/g);
         const unauthorizedLinks = messageLinks.filter(link => {
             return !allowedLinks.some(allowedLink => link.includes(allowedLink));
-            return !msg.author.bot && !msg.member.permissions.has('ADMINISTRATOR') && /https?:\/\/\S+/gi.test(msg.content)
+            return !message.author.bot && !message.member.permissions.has('ADMINISTRATOR') && /https?:\/\/\S+/gi.test(message.content)
         });
         if (unauthorizedLinks.length > 0) {
             await message.delete();
