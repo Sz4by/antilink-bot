@@ -1,4 +1,4 @@
-const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
+daconst { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const config = require('./config.json');
@@ -23,10 +23,10 @@ client.once('ready', async () => {
         await guild.commands.create(
             new SlashCommandBuilder()
                 .setName('addlink')
-                .setDescription('Ajouter un lien à la liste des liens autorisés')
+                .setDescription('Adjon hozzá egy hivatkozást az engedélyezett hivatkozások listájához')
                 .addStringOption(option => 
-                    option.setName('lien')
-                        .setDescription('Le lien à ajouter')
+                    option.setName('link')
+                        .setDescription('A hozzáadandó link')
                         .setRequired(true)
                 )
         );
@@ -38,7 +38,7 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.commandName === 'addlink') {
         if (!interaction.member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
-            return interaction.reply('Vous n\'avez pas la permission d\'utiliser cette commande.');
+            return interaction.reply('Nincs engedélye a parancs használatára.');
         }
 
         let newLink = interaction.options.getString('lien');
@@ -49,9 +49,9 @@ client.on('interactionCreate', async interaction => {
         if (!allowedLinks.includes(newLink)) {
             allowedLinks.push(newLink);
             saveAllowedLinks();
-            await interaction.reply(`Le lien ${newLink} a été ajouté à la liste des liens autorisés.`);
+            await interaction.reply(`A link ${newLink} felkerült az engedélyezett hivatkozások listájára.`);
         } else {
-            await interaction.reply('Ce lien est déjà dans la liste des liens autorisés.');
+            await interaction.reply('Ez a hivatkozás már szerepel az engedélyezett hivatkozások listájában.');
         }
     }
 });
@@ -66,21 +66,21 @@ client.on('messageCreate', async message => {
         });
         if (unauthorizedLinks.length > 0) {
             await message.delete();
-            const warningMessage = await message.channel.send(`<@${message.author.id}> Les liens ne sont pas autorisés.`);
+            const warningMessage = await message.channel.send(`<@${message.author.id}> A hivatkozások nem engedélyezettek.`);
             setTimeout(() => warningMessage.delete(), 5000);
             const embed = new MessageEmbed()
                 .setColor('#FF0000')
-                .setTitle('Message Supprimé - Lien Non Autorisé')
-                .setDescription(`Message supprimé dans <#${message.channel.id}>`)
-                .addField('Utilisateur', `<@${message.author.id}>`, true)
-                .addField('Message', message.content, true)
-                .addField('Liens Non Autorisés', unauthorizedLinks.join('\n'));
+                .setTitle('Bejegyzés törölve – A hivatkozás nem engedélyezett')
+                .setDescription(`Üzenet törölve itt <#${message.channel.id}>`)
+                .addField('Felhasználó', `<@${message.author.id}>`, true)
+                .addField('Üzenet', message.content, true)
+                .addField('Jogosulatlan linkek', unauthorizedLinks.join('\n'));
 
             const modLogChannel = message.guild.channels.cache.get(config.logs);
             if (modLogChannel) {
                 modLogChannel.send({ embeds: [embed] });
             } else {
-                message.channel.send('Canal de logs non trouvé.');
+                message.channel.send('Jogosulatlan linkek');
             }
         }
     }
