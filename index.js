@@ -25,7 +25,7 @@ client.once('ready', async () => {
                 .setName('addlink')
                 .setDescription('Adjon hozzá egy hivatkozást az engedélyezett hivatkozások listájához')
                 .addStringOption(option => 
-                    option.setName('lien')
+                    option.setName('link')
                         .setDescription('A hozzáadandó link')
                         .setRequired(true)
                 )
