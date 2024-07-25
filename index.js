@@ -85,7 +85,7 @@ client.on('messageCreate', async message => {
     }
 });
 
-client.login(config.token);
+client.login(process.env.CLIENT_TOKEN);
 
 const arizaki = `
  █████╗ ██████╗ ██╗███████╗ █████╗ ██╗  ██╗██╗
