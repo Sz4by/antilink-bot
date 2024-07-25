@@ -59,12 +59,10 @@ client.on('interactionCreate', async interaction => {
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
     if (message.content.includes('http://') || message.content.includes('https://')) {
-        const filter = msg => {
-            return !msg.author.bot && !msg.member.permissions.has('ADMINISTRATOR') && /https?:\/\/\S+/gi.test(msg.content)
         const messageLinks = message.content.match(/(https?:\/\/[^\s]+)/g);
-
         const unauthorizedLinks = messageLinks.filter(link => {
             return !allowedLinks.some(allowedLink => link.includes(allowedLink));
+            return !msg.author.bot && !msg.member.permissions.has('ADMINISTRATOR') && /https?:\/\/\S+/gi.test(msg.content)
         });
         if (unauthorizedLinks.length > 0) {
             await message.delete();
