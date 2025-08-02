@@ -69,6 +69,26 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// Új API végpont a régi URL támogatásához
+app.get('/v1/users/:id', (req, res) => {
+  if (req.params.id === '1095731086513930260') {
+    res.json({
+      success: true,
+      data: {
+        status: currentStatus,
+        discord_user: {
+          username: currentUserData?.user?.username || '',
+          discriminator: currentUserData?.user?.discriminator || '',
+          avatar: currentUserData?.user?.avatar || '',
+        },
+        activities: currentUserData?.activities || []
+      }
+    });
+  } else {
+    res.status(404).json({ success: false, message: 'User not found' });
+  }
+});
+
 // Statikus fájlok kiszolgálása (a weboldalad ide kerül)
 app.use(express.static(path.join(__dirname, 'public')));
 
