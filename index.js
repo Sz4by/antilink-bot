@@ -2,6 +2,7 @@ const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const config = require('./config.json');
+const keep_alive = require('./keep_alive.js')
 
 // FONTOS: Add hozzá az Intents.FLAGS.GUILD_PRESENCES-t hogy a státuszokat lássa
 const client = new Client({ intents: [
@@ -101,4 +102,5 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
+
 
