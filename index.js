@@ -1,15 +1,12 @@
+const express = require('express');
 const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
+const path = require('path');
 const config = require('./config.json');
-const keep_alive = require('./keep_alive.js')
 
-// FONTOS: Add hozzá az Intents.FLAGS.GUILD_PRESENCES-t hogy a státuszokat lássa
-const client = new Client({ intents: [
-  Intents.FLAGS.GUILDS, 
-  Intents.FLAGS.GUILD_MESSAGES,
-  Intents.FLAGS.GUILD_PRESENCES
-] });
+const app = express();
+const PORT = process.env.PORT || 3000;
 
 let allowedLinks = [];
 const allowedLinksFile = './liens.json';
@@ -21,6 +18,16 @@ if (fs.existsSync(allowedLinksFile)) {
 function saveAllowedLinks() {
     fs.writeFileSync(allowedLinksFile, JSON.stringify({ allowedLinks }, null, 2));
 }
+
+// Discord bot inicializálása Intents kiegészítve státusz figyeléshez
+const client = new Client({ intents: [
+  Intents.FLAGS.GUILDS, 
+  Intents.FLAGS.GUILD_MESSAGES,
+  Intents.FLAGS.GUILD_PRESENCES
+] });
+
+let currentStatus = 'offline';  // alapértelmezett státusz
+let currentUserData = null;     // opcionális, ha bővebb infót tárolsz
 
 client.once('ready', async () => {
     console.log(`Connected as ${client.user.tag}!`);
@@ -39,16 +46,37 @@ client.once('ready', async () => {
     }
 });
 
-// Figyelés státusz változásra, itt tudsz reagálni ha akarod
+// Figyelés státusz változásra (a saját user ID-d legyen itt)
 client.on('presenceUpdate', (oldPresence, newPresence) => {
   if (!newPresence || !newPresence.user) return;
-  // Példa: ha saját user ID-d
   if(newPresence.userId === '1095731086513930260') {
-    console.log(`User státusza változott: ${newPresence.status}`); 
-    // Ezt az adatot használhatod weboldalon vagy máshol
+    currentStatus = newPresence.status || 'offline';
+    currentUserData = newPresence; // opcionális: tárolhatod az egész objektumot
+    console.log(`User státusza változott: ${currentStatus}`);
   }
 });
 
+// API végpont a státusz lekérésére
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: currentStatus,
+    userData: currentUserData ? {
+      username: currentUserData.user?.username || '',
+      discriminator: currentUserData.user?.discriminator || '',
+      avatar: currentUserData.user?.avatar || '',
+      activities: currentUserData.activities || [],
+    } : null
+  });
+});
+
+// Statikus fájlok kiszolgálása (a weboldalad ide kerül)
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.listen(PORT, () => {
+  console.log(`Webserver running on port ${PORT}`);
+});
+
+// Parancs kezelése
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
@@ -72,6 +100,7 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
+// Linkek figyelése és tiltás
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
     if (message.content.includes('http://') || message.content.includes('https://')) {
@@ -102,5 +131,3 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
-
-
