@@ -26,7 +26,7 @@ const client = new Client({ intents: [
   Intents.FLAGS.GUILD_PRESENCES
 ] });
 
-let currentStatus = 'offline';  // alapértelmezett státusz
+let currentStatus = 'dnd';  // alapértelmezett státusz
 let currentUserData = null;     // opcionális, ha bővebb infót tárolsz
 
 client.once('ready', async () => {
@@ -151,3 +151,4 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
+
