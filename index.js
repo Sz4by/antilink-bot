@@ -4,7 +4,13 @@ const fs = require('fs');
 const config = require('./config.json');
 const keep_alive = require('./keep_alive.js')
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+// FONTOS: Add hozzá az Intents.FLAGS.GUILD_PRESENCES-t hogy a státuszokat lássa
+const client = new Client({ intents: [
+  Intents.FLAGS.GUILDS, 
+  Intents.FLAGS.GUILD_MESSAGES,
+  Intents.FLAGS.GUILD_PRESENCES
+] });
+
 let allowedLinks = [];
 const allowedLinksFile = './liens.json';
 
@@ -17,7 +23,7 @@ function saveAllowedLinks() {
 }
 
 client.once('ready', async () => {
-    console.log(`Connecté sur ${client.user.tag}!`);
+    console.log(`Connected as ${client.user.tag}!`);
     const guild = client.guilds.cache.get(config.guildId);
     if (guild) {
         await guild.commands.create(
@@ -31,6 +37,16 @@ client.once('ready', async () => {
                 )
         );
     }
+});
+
+// Figyelés státusz változásra, itt tudsz reagálni ha akarod
+client.on('presenceUpdate', (oldPresence, newPresence) => {
+  if (!newPresence || !newPresence.user) return;
+  // Példa: ha saját user ID-d
+  if(newPresence.userId === '1095731086513930260') {
+    console.log(`User státusza változott: ${newPresence.status}`); 
+    // Ezt az adatot használhatod weboldalon vagy máshol
+  }
 });
 
 client.on('interactionCreate', async interaction => {
@@ -86,17 +102,3 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
-
-const arizaki = `
- █████╗ ██████╗ ██╗███████╗ █████╗ ██╗  ██╗██╗
-██╔══██╗██╔══██╗██║╚══███╔╝██╔══██╗██║ ██╔╝██║
-███████║██████╔╝██║  ███╔╝ ███████║█████╔╝ ██║
-██╔══██║██╔══██╗██║ ███╔╝  ██╔══██║██╔═██╗ ██║
-██║  ██║██║  ██║██║███████╗██║  ██║██║  ██╗██║
-╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-\n 
-
-Discord bot Anti-link v1.0 by Arizaki
-
-Github: https://github.com/ArizakiDev/antilink-bot`;
-console.log(arizaki);
