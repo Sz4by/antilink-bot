@@ -46,11 +46,11 @@ client.once('ready', async () => {
     }
 });
 
-// Figyelés státusz változásra (a saját user ID-d legyen itt)
+// Debug kiírás hozzáadva a presenceUpdate eseményhez
 client.on('presenceUpdate', (oldPresence, newPresence) => {
+  console.log('presenceUpdate event fired for user:', newPresence?.user?.id);
   if (!newPresence || !newPresence.user) return;
 
-  // Javítva: user.id a userId helyett
   if(newPresence.user.id === '1095731086513930260') {
     currentStatus = newPresence.status || 'offline';
 
