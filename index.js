@@ -80,6 +80,7 @@ app.get('/api/status', (req, res) => {
 
 // Régi URL támogatása, ahogy a korábbi Lanyard API-hoz szoktak
 app.get('/v1/users/:id', (req, res) => {
+  console.log(`Received request for user ID: ${req.params.id}`);  // Debug log
   if (req.params.id === '1095731086513930260') {
     res.json({
       success: true,
