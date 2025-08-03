@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');  // <-- hozzáadva
 const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
@@ -6,6 +7,8 @@ const path = require('path');
 const config = require('./config.json');
 
 const app = express();
+app.use(cors());  // <-- ide beillesztve
+
 const PORT = process.env.PORT || 3000;
 
 let allowedLinks = [];
