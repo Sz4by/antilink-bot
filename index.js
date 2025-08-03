@@ -49,10 +49,21 @@ client.once('ready', async () => {
 // Figyelés státusz változásra (a saját user ID-d legyen itt)
 client.on('presenceUpdate', (oldPresence, newPresence) => {
   if (!newPresence || !newPresence.user) return;
-  if(newPresence.userId === '1095731086513930260') {
+
+  // Javítva: user.id a userId helyett
+  if(newPresence.user.id === '1095731086513930260') {
     currentStatus = newPresence.status || 'offline';
-    currentUserData = newPresence; // opcionális: tárolhatod az egész objektumot
-    console.log(`User státusza változott: ${currentStatus}`);
+
+    currentUserData = {
+      user: {
+        username: newPresence.user.username,
+        discriminator: newPresence.user.discriminator,
+        avatar: newPresence.user.avatar
+      },
+      activities: newPresence.activities || []
+    };
+
+    console.log(`User státusza változott: ${currentStatus}`, currentUserData);
   }
 });
 
@@ -60,12 +71,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
 app.get('/api/status', (req, res) => {
   res.json({
     status: currentStatus,
-    userData: currentUserData ? {
-      username: currentUserData.user?.username || '',
-      discriminator: currentUserData.user?.discriminator || '',
-      avatar: currentUserData.user?.avatar || '',
-      activities: currentUserData.activities || [],
-    } : null
+    userData: currentUserData
   });
 });
 
