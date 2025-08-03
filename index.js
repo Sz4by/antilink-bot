@@ -48,9 +48,10 @@ client.once('ready', async () => {
 
 // Debug kiírás hozzáadva a presenceUpdate eseményhez
 client.on('presenceUpdate', (oldPresence, newPresence) => {
-  console.log('presenceUpdate event fired for user:', newPresence?.user?.id);
+  console.log('presenceUpdate event fired for user:', newPresence?.user?.id); // Debug kiírás
   if (!newPresence || !newPresence.user) return;
 
+  // Az ID megfelelő ellenőrzése
   if(newPresence.user.id === '1095731086513930260') {
     currentStatus = newPresence.status || 'offline';
 
@@ -63,7 +64,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       activities: newPresence.activities || []
     };
 
-    console.log(`User státusza változott: ${currentStatus}`, currentUserData);
+    console.log(`User státusza változott: ${currentStatus}`, currentUserData); // Debug kiírás
   }
 });
 
