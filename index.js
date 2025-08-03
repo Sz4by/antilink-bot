@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');  // <-- hozzáadva
-const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
+const { Client, GatewayIntentBits, PermissionsBitField, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
@@ -22,11 +22,11 @@ function saveAllowedLinks() {
     fs.writeFileSync(allowedLinksFile, JSON.stringify({ allowedLinks }, null, 2));
 }
 
-// Discord bot inicializálása Intents kiegészítve státusz figyeléshez
+// Discord bot inicializálása GatewayIntentBits-tel
 const client = new Client({ intents: [
-  Intents.FLAGS.GUILDS, 
-  Intents.FLAGS.GUILD_MESSAGES,
-  Intents.FLAGS.GUILD_PRESENCES
+  GatewayIntentBits.Guilds, 
+  GatewayIntentBits.GuildMessages,
+  GatewayIntentBits.GuildPresences
 ] });
 
 let currentStatus = 'offline';  // alapértelmezett státusz
@@ -114,7 +114,7 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === 'addlink') {
-        if (!interaction.member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply('Nincs engedélye a parancs használatára.');
         }
 
