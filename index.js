@@ -6,7 +6,7 @@ const path = require('path');
 const config = require('./config.json');
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Ha van környezeti változó, akkor azt, ha nincs, akkor 3000
+const PORT = process.env.PORT || 3000;
 
 let allowedLinks = [];
 const allowedLinksFile = './liens.json';
@@ -56,7 +56,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
   }
 });
 
-// API végpont a státusz lekérésére
+// API végpont a státusz lekérésére (modern URL)
 app.get('/api/status', (req, res) => {
   res.json({
     status: currentStatus,
@@ -67,6 +67,26 @@ app.get('/api/status', (req, res) => {
       activities: currentUserData.activities || [],
     } : null
   });
+});
+
+// Régi URL támogatása, ahogy a korábbi Lanyard API-hoz szoktak
+app.get('/v1/users/:id', (req, res) => {
+  if (req.params.id === '1095731086513930260') {
+    res.json({
+      success: true,
+      data: {
+        status: currentStatus,
+        discord_user: {
+          username: currentUserData?.user?.username || '',
+          discriminator: currentUserData?.user?.discriminator || '',
+          avatar: currentUserData?.user?.avatar || '',
+        },
+        activities: currentUserData?.activities || []
+      }
+    });
+  } else {
+    res.status(404).json({ success: false, message: 'User not found' });
+  }
 });
 
 // Statikus fájlok kiszolgálása (a weboldalad ide kerül)
