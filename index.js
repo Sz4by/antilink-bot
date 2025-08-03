@@ -1,14 +1,11 @@
 const express = require('express');
-const cors = require('cors');  // <-- hozzáadva
-const { Client, GatewayIntentBits, PermissionsBitField, MessageEmbed } = require('discord.js');
+const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
 
 const app = express();
-app.use(cors());  // <-- ide beillesztve
-
 const PORT = process.env.PORT || 3000;
 
 let allowedLinks = [];
@@ -22,11 +19,11 @@ function saveAllowedLinks() {
     fs.writeFileSync(allowedLinksFile, JSON.stringify({ allowedLinks }, null, 2));
 }
 
-// Discord bot inicializálása GatewayIntentBits-tel
+// Discord bot inicializálása Intents kiegészítve státusz figyeléshez
 const client = new Client({ intents: [
-  GatewayIntentBits.Guilds, 
-  GatewayIntentBits.GuildMessages,
-  GatewayIntentBits.GuildPresences
+  Intents.FLAGS.GUILDS, 
+  Intents.FLAGS.GUILD_MESSAGES,
+  Intents.FLAGS.GUILD_PRESENCES
 ] });
 
 let currentStatus = 'offline';  // alapértelmezett státusz
@@ -64,6 +61,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
         discriminator: newPresence.user.discriminator,
         avatar: newPresence.user.avatar
       },
+      displayName: newPresence.member ? newPresence.member.displayName : newPresence.user.username,
       activities: newPresence.activities || []
     };
 
@@ -93,6 +91,7 @@ app.get('/v1/users/:id', (req, res) => {
           username: currentUserData?.user?.username || '',
           discriminator: currentUserData?.user?.discriminator || '',
           avatar: currentUserData?.user?.avatar || '',
+          displayName: currentUserData?.displayName || ''
         },
         activities: currentUserData?.activities || []
       }
@@ -114,7 +113,7 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === 'addlink') {
-        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+        if (!interaction.member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
             return interaction.reply('Nincs engedélye a parancs használatára.');
         }
 
