@@ -1,11 +1,14 @@
 const express = require('express');
-const { Client, Intents, Permissions, MessageEmbed } = require('discord.js');
+const cors = require('cors');  // Ha szeretnéd engedélyezni a CORS-t
+const { Client, GatewayIntentBits, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
 
 const app = express();
+app.use(cors());  // opcionális, ha CORS kell
+
 const PORT = process.env.PORT || 3000;
 
 let allowedLinks = [];
@@ -19,11 +22,12 @@ function saveAllowedLinks() {
     fs.writeFileSync(allowedLinksFile, JSON.stringify({ allowedLinks }, null, 2));
 }
 
-// Discord bot inicializálása Intents kiegészítve státusz figyeléshez
+// Discord bot inicializálása új Intents használatával
 const client = new Client({ intents: [
-  Intents.FLAGS.GUILDS, 
-  Intents.FLAGS.GUILD_MESSAGES,
-  Intents.FLAGS.GUILD_PRESENCES
+  GatewayIntentBits.Guilds, 
+  GatewayIntentBits.GuildMessages,
+  GatewayIntentBits.GuildPresences,
+  GatewayIntentBits.GuildMembers
 ] });
 
 let currentStatus = 'offline';  // alapértelmezett státusz
@@ -48,10 +52,9 @@ client.once('ready', async () => {
 
 // Debug kiírás hozzáadva a presenceUpdate eseményhez
 client.on('presenceUpdate', (oldPresence, newPresence) => {
-  console.log('presenceUpdate event fired for user:', newPresence?.user?.id); // Debug kiírás
+  console.log('presenceUpdate event fired for user:', newPresence?.user?.id);
   if (!newPresence || !newPresence.user) return;
 
-  // Ellenőrizd a helyes ID-t
   if(newPresence.user.id === '1095731086513930260') {
     currentStatus = newPresence.status || 'offline';
 
@@ -65,7 +68,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       activities: newPresence.activities || []
     };
 
-    console.log(`User státusza változott: ${currentStatus}`, currentUserData); // Debug kiírás
+    console.log(`User státusza változott: ${currentStatus}`, currentUserData);
   } else {
     console.log('Presence update for a different user:', newPresence.user.id);
   }
@@ -81,7 +84,7 @@ app.get('/api/status', (req, res) => {
 
 // Régi URL támogatása, ahogy a korábbi Lanyard API-hoz szoktak
 app.get('/v1/users/:id', (req, res) => {
-  console.log(`Received request for user ID: ${req.params.id}`);  // Debug log
+  console.log(`Received request for user ID: ${req.params.id}`);
   if (req.params.id === '1095731086513930260') {
     res.json({
       success: true,
@@ -101,7 +104,7 @@ app.get('/v1/users/:id', (req, res) => {
   }
 });
 
-// Statikus fájlok kiszolgálása (a weboldalad ide kerül)
+// Statikus fájlok kiszolgálása
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, () => {
