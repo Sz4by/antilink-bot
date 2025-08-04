@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('cors');  // Ha szeretnéd engedélyezni a CORS-t
+const cors = require('cors');
 const { Client, GatewayIntentBits, Permissions, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
@@ -7,7 +7,7 @@ const path = require('path');
 const config = require('./config.json');
 
 const app = express();
-app.use(cors());  // opcionális, ha CORS kell
+app.use(cors());
 
 const PORT = process.env.PORT || 3000;
 
@@ -22,7 +22,6 @@ function saveAllowedLinks() {
     fs.writeFileSync(allowedLinksFile, JSON.stringify({ allowedLinks }, null, 2));
 }
 
-// Discord bot inicializálása új Intents használatával
 const client = new Client({ intents: [
   GatewayIntentBits.Guilds, 
   GatewayIntentBits.GuildMessages,
@@ -30,8 +29,8 @@ const client = new Client({ intents: [
   GatewayIntentBits.GuildMembers
 ] });
 
-let currentStatus = 'offline';  // alapértelmezett státusz
-let currentUserData = null;     // opcionális, ha bővebb infót tárolsz
+let currentStatus = 'offline';
+let currentUserData = null;
 
 client.once('ready', async () => {
     console.log(`Connected as ${client.user.tag}!`);
@@ -50,7 +49,6 @@ client.once('ready', async () => {
     }
 });
 
-// Debug kiírás hozzáadva a presenceUpdate eseményhez
 client.on('presenceUpdate', (oldPresence, newPresence) => {
   console.log('presenceUpdate event fired for user:', newPresence?.user?.id);
   if (!newPresence || !newPresence.user) return;
@@ -74,15 +72,49 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
   }
 });
 
-// API végpont a státusz lekérésére (modern URL)
+// ----- SAJÁT WEBOLDAL -----
+app.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Discord Bot & API</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #222; color: #eee; text-align: center; padding: 40px; }
+          .card { background: #333; border-radius: 15px; padding: 30px; margin: auto; max-width: 420px; box-shadow: 0 2px 10px #0007; }
+          h1 { color: #71b7ff; }
+          .desc { font-size: 1.15em; color: #eee; margin-bottom: 20px; }
+          a { color: #85d6ff; text-decoration: none; }
+          a:hover { text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>🤖 Discord Bot & API</h1>
+          <div class="desc">
+            Ez a bot <b>online</b>.<br>
+            <br>
+            <b>API végpontok:</b> <br>
+            <a href="/api/status" target="_blank">/api/status</a><br>
+            <a href="/v1/users/1095731086513930260" target="_blank">/v1/users/:id</a><br>
+            <br>
+            Engedélyezett linkek száma: <b>${allowedLinks.length}</b>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+// Statikus fájlok kiszolgálása (maradhat, ha van public mappád)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// --- API végpontok ---
 app.get('/api/status', (req, res) => {
   res.json({
     status: currentStatus,
     userData: currentUserData
   });
 });
-
-// Régi URL támogatása, ahogy a korábbi Lanyard API-hoz szoktak
 app.get('/v1/users/:id', (req, res) => {
   console.log(`Received request for user ID: ${req.params.id}`);
   if (req.params.id === '1095731086513930260') {
@@ -104,14 +136,7 @@ app.get('/v1/users/:id', (req, res) => {
   }
 });
 
-// Statikus fájlok kiszolgálása
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.listen(PORT, () => {
-  console.log(`Webserver running on port ${PORT}`);
-});
-
-// Parancs kezelése
+// --- Slash parancs ---
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
@@ -135,7 +160,7 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// Linkek figyelése és tiltás
+// --- Linkek figyelése és tiltás ---
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
     if (message.content.includes('http://') || message.content.includes('https://')) {
@@ -163,6 +188,11 @@ client.on('messageCreate', async message => {
             }
         }
     }
+});
+
+// --- PORTON INDÍTÁS ---
+app.listen(PORT, () => {
+  console.log(`Webserver running on port ${PORT}`);
 });
 
 client.login(process.env.CLIENT_TOKEN);
