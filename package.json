@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js & node restart.js"
+    "start": "pm2 start index.js && pm2 start restart.js",
+    "install": "npm install"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -11,6 +12,7 @@
     "@discordjs/builders": "^1.3.0",
     "dotenv": "^17.2.1",
     "cors": "^2.8.5",
-    "axios": "^0.27.2"
+    "axios": "^0.27.2",
+    "pm2": "^5.1.0"
   }
 }
