@@ -5,6 +5,11 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
+// Elindítjuk a másik szkriptet szinkron módon
+const otherScript = require('./restart.js');
+
+console.log("restart.js is running.");
+
 
 const app = express();
 app.use(cors());
@@ -196,3 +201,4 @@ app.listen(PORT, () => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
+
