@@ -1,7 +1,7 @@
 const axios = require('axios');
 
-const serviceId = 'srv-cqbnnqiju9rs7394flag';  // Cseréld ki a szolgáltatás azonosítójára
-const apiKey = 'rnd_0tsGxwLpPDm3Tb8oNMiOPpasyEPL';        // Cseréld ki az API kulcsodra
+const serviceId = 'srv-d3qvpugdl3ps73c98uv0';  // Cseréld ki a szolgáltatás azonosítójára
+const apiKey = 'rnd_FsJgEiBT7zcQKYTIRHV4wgl9o32A';        // Cseréld ki az API kulcsodra
 
 const url = `https://api.render.com/v1/services/${serviceId}/restart`;
 
