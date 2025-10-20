@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const { Client, GatewayIntentBits, Permissions, MessageEmbed } = require('discord.js');
+// --- JAVÍTVA ITT (Permissions -> PermissionsBitField) ---
+const { Client, GatewayIntentBits, PermissionsBitField, MessageEmbed } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
@@ -146,7 +147,8 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === 'addlink') {
-        if (!interaction.member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
+        // --- JAVÍTVA ITT (Permissions.FLAGS.ADMINISTRATOR -> PermissionsBitField.Flags.Administrator) ---
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply('Nincs engedélye a parancs használatára.');
         }
 
@@ -201,4 +203,4 @@ app.listen(PORT, () => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
-
+        
