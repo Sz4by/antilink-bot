@@ -70,10 +70,10 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
     // Debug: Ellenőrizzük az összes aktivitást
     console.log('Aktivitások:', JSON.stringify(newPresence.activities, null, 2));
 
-    // Zenehallgatás ellenőrzése
+    // Spotify aktivitás ellenőrzése
     const musicActivity = currentUserData.activities.find(activity => activity.type === 'LISTENING');
     if (musicActivity) {
-      console.log('Zenehallgatás:', musicActivity.name);
+      console.log('Spotify zenehallgatás:', musicActivity.name);  // A Spotify zene neve
     } else {
       console.log('Nincs zenehallgatás');
     }
@@ -116,7 +116,6 @@ function updateApiStatus(userData) {
   })
     .then(response => {
       if (!response.ok) {
-        // API hibák kezelése
         throw new Error(`API hiba: ${response.status} ${response.statusText}`);
       }
       return response.json();
