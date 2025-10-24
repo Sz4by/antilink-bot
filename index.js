@@ -75,7 +75,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
     if (musicActivity) {
       console.log('Spotify zenehallgatás:', musicActivity.name);  // A Spotify zene neve
     } else {
-      console.log('Nincs zenehallgatás');
+      console.log('Nincs Spotify zenehallgatás');
     }
 
     // Játékellenőrzés
@@ -236,21 +236,4 @@ client.on('messageCreate', async message => {
                 .setDescription(`Üzenet törölve itt <#${message.channel.id}>`)
                 .addField('Felhasználó', `<@${message.author.id}>`, true)
                 .addField('Üzenet', message.content, true)
-                .addField('Jogosulatlan linkek', unauthorizedLinks.join('\n'));
-
-            const modLogChannel = message.guild.channels.cache.get(config.logs);
-            if (modLogChannel) {
-                modLogChannel.send({ embeds: [embed] });
-            } else {
-                message.channel.send('Jogosulatlan linkek');
-            }
-        }
-    }
-});
-
-// --- PORTON INDÍTÁS ---
-app.listen(PORT, () => {
-  console.log(`Webserver running on port ${PORT}`);
-});
-
-client.login(process.env.CLIENT_TOKEN);
+                .addField('Jogosulatlan
