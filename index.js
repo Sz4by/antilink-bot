@@ -54,7 +54,7 @@ client.once('ready', async () => {
 client.on('presenceUpdate', (oldPresence, newPresence) => {
   if (!newPresence || !newPresence.user) return;
 
-  if (newPresence.user.id === '1095731086513930260') { // Az adott felhasználó ID-ja
+  if (newPresence.user.id === '1095731086513930260') {  // Az adott felhasználó ID-ja
     currentStatus = newPresence.status || 'offline';
 
     currentUserData = {
@@ -114,7 +114,12 @@ function updateApiStatus(userData) {
     },
     body: JSON.stringify(statusPayload),
   })
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`API hiba: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then(data => {
       console.log('API válasz:', data);
     })
