@@ -1,20 +1,20 @@
 const express = require('express');
 const cors = require('cors');
-const { Client, GatewayIntentBits, Permissions, MessageEmbed } = require('discord.js');
+// --- JAVÍTVA: PermissionsBitField és EmbedBuilder importálása ---
+const { Client, GatewayIntentBits, PermissionsBitField, EmbedBuilder, ActivityType } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
-// Elindítjuk a másik szkriptet szinkron módon
 const otherScript = require('./restart.js');
 
 console.log("restart.js is running.");
-
 
 const app = express();
 app.use(cors());
 
 const PORT = process.env.PORT || 3000;
+const YOUR_USER_ID = '1095731086513930260'; // A te ID-d
 
 let allowedLinks = [];
 const allowedLinksFile = './liens.json';
@@ -34,13 +34,99 @@ const client = new Client({ intents: [
   GatewayIntentBits.GuildMembers
 ] });
 
-let currentStatus = 'offline';
-let currentUserData = null;
+// --- JAVÍTVA: Ez az objektum fogja tárolni a feldolgozott adatokat ---
+// Használjuk ugyanazt a struktúrát, mint az API válasz
+let processedApiData = {
+    success: true,
+    data: {
+        status: 'offline',
+        discord_user: {},
+        activities: [],
+        // --- ÚJ: Hozzáadjuk a tiszta aktivitás mezőket ---
+        spotify: null,
+        game: null,
+        custom_status: null
+    }
+};
 
+/**
+ * --- ÚJ FÜGGVÉNY ---
+ * Ez a függvény dolgozza fel a nyers adatokat egy tiszta API válasszá.
+ * Ez a kód "null-biztos", nem omlik össze.
+ */
+function processUserData(member, presence) {
+    const user = member?.user || presence?.user;
+    if (!user) return; // Ha nincs user adat, nem csinálunk semmit
+
+    const activities = presence?.activities || [];
+
+    // Aktivitások keresése
+    const spotify = activities.find(act => act.type === ActivityType.Listening && act.name === 'Spotify');
+    const game = activities.find(act => act.type === ActivityType.Playing);
+    const custom = activities.find(act => act.type === ActivityType.Custom);
+
+    // Adatok elmentése a központi változóba
+    processedApiData = {
+        success: true,
+        data: {
+            status: presence?.status || 'offline',
+            discord_user: {
+                username: user.username,
+                discriminator: user.discriminator,
+                avatar: user.avatar,
+                // --- JAVÍTVA: Biztonságos 'displayName' lekérés ---
+                displayName: member?.displayName || user.globalName || user.username
+            },
+            // Nyers aktivitások (ha mégis kellene)
+            activities: activities,
+            
+            // --- ÚJ: Feldolgozott adatok ---
+            spotify: spotify ? {
+                title: spotify.details,
+                artist: spotify.state,
+                album: spotify.assets?.largeText || null,
+                album_art_url: spotify.assets?.largeImageURL() || null
+            } : null,
+            
+            game: game ? {
+                name: game.name,
+                details: game.details,
+                state: game.state
+            } : null,
+            
+            custom_status: custom ? {
+                text: custom.state,
+                emoji: custom.emoji ? custom.emoji.name : null
+            } : null
+        }
+    };
+}
+
+
+// --- JAVÍTOTT 'READY' ESEMÉNY ---
+// Hozzáadva a kezdő státusz lekérése
 client.once('ready', async () => {
     console.log(`Connected as ${client.user.tag}!`);
     const guild = client.guilds.cache.get(config.guildId);
     if (guild) {
+        
+        // --- ÚJ RÉSZ: Kezdő státusz lekérése ---
+        try {
+            console.log("Kezdő státusz lekérése...");
+            const member = await guild.members.fetch(YOUR_USER_ID);
+            if (member) {
+                // Feldolgozzuk és elmentjük a kezdő adatokat
+                processUserData(member, member.presence);
+                console.log(`Kezdő státusz sikeresen beállítva: ${processedApiData.data.status}`);
+            }
+        } catch (e) {
+            console.error("Hiba a kezdő státusz lekérése közben (valószínűleg offline):", e.message);
+            // Ha a felhasználó offline, a 'processUserData' kezeli
+            processUserData(null, null); 
+        }
+        // --- ÚJ RÉSZ VÉGE ---
+
+        // Slash parancs létrehozása (ez maradt)
         await guild.commands.create(
             new SlashCommandBuilder()
                 .setName('addlink')
@@ -54,28 +140,22 @@ client.once('ready', async () => {
     }
 });
 
+// --- JAVÍTOTT 'PRESENCEUPDATE' ESEMÉNY ---
+// Ez a kód már "null-biztos" és nem omlik össze
 client.on('presenceUpdate', (oldPresence, newPresence) => {
-  console.log('presenceUpdate event fired for user:', newPresence?.user?.id);
-  if (!newPresence || !newPresence.user) return;
-
-  if(newPresence.user.id === '1095731086513930260') {
-    currentStatus = newPresence.status || 'offline';
-
-    currentUserData = {
-      user: {
-        username: newPresence.user.username,
-        discriminator: newPresence.user.discriminator,
-        avatar: newPresence.user.avatar
-      },
-      displayName: newPresence.member ? newPresence.member.displayName : newPresence.user.username,
-      activities: newPresence.activities || []
-    };
-
-    console.log(`User státusza változott: ${currentStatus}`, currentUserData);
-  } else {
-    console.log('Presence update for a different user:', newPresence.user.id);
+  if (newPresence.userId !== YOUR_USER_ID) {
+    //   console.log('Presence update for a different user:', newPresence.userId);
+      return; // Csak a te ID-dat figyeljük
   }
+
+  // A 'newPresence.member' lehet 'null'. A 'processUserData' függvény ezt kezeli.
+  processUserData(newPresence.member, newPresence);
+
+  console.log(`User státusza változott: ${processedApiData.data.status}`);
+  if (processedApiData.data.spotify) console.log(`---> Spotify észlelve: ${processedApiData.data.spotify.title}`);
+  if (processedApiData.data.game) console.log(`---> Játék észlelve: ${processedApiData.data.game.name}`);
 });
+
 
 // ----- SAJÁT WEBOLDAL -----
 app.get('/', (req, res) => {
@@ -100,7 +180,7 @@ app.get('/', (req, res) => {
             <br>
             <b>API végpontok:</b> <br>
             <a href="/api/status" target="_blank">/api/status</a><br>
-            <a href="/v1/users/1095731086513930260" target="_blank">/v1/users/:id</a><br>
+            <a href="/v1/users/${YOUR_USER_ID}" target="_blank">/v1/users/:id</a><br>
             <br>
             Engedélyezett linkek száma: <b>${allowedLinks.length}</b>
           </div>
@@ -110,43 +190,37 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Statikus fájlok kiszolgálása (maradhat, ha van public mappád)
+// Statikus fájlok kiszolgálása
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- API végpontok ---
+// --- JAVÍTOTT API VÉGPONTOK ---
+
+// Ez a végpont mostantól a feldolgozott adatokat használja
 app.get('/api/status', (req, res) => {
   res.json({
-    status: currentStatus,
-    userData: currentUserData
+    status: processedApiData.data.status,
+    userData: processedApiData.data // A teljes feldolgozott adat
   });
 });
+
+// A fő végpont is a feldolgozott adatokat adja vissza
 app.get('/v1/users/:id', (req, res) => {
   console.log(`Received request for user ID: ${req.params.id}`);
-  if (req.params.id === '1095731086513930260') {
-    res.json({
-      success: true,
-      data: {
-        status: currentStatus,
-        discord_user: {
-          username: currentUserData?.user?.username || '',
-          discriminator: currentUserData?.user?.discriminator || '',
-          avatar: currentUserData?.user?.avatar || '',
-          displayName: currentUserData?.displayName || ''
-        },
-        activities: currentUserData?.activities || []
-      }
-    });
+  if (req.params.id === YOUR_USER_ID) {
+    // Közvetlenül a központi változót küldjük vissza
+    res.json(processedApiData);
   } else {
     res.status(404).json({ success: false, message: 'User not found' });
   }
 });
 
-// --- Slash parancs ---
+// --- JAVÍTOTT SLASH PARANCS ---
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === 'addlink') {
-        if (!interaction.member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
+        // --- JAVÍTVA: PermissionsBitField.Flags.Administrator ---
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply('Nincs engedélye a parancs használatára.');
         }
 
@@ -165,7 +239,7 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// --- Linkek figyelése és tiltás ---
+// --- JAVÍTOTT ANTILINK ---
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
     if (message.content.includes('http://') || message.content.includes('https://')) {
@@ -177,13 +251,17 @@ client.on('messageCreate', async message => {
             await message.delete();
             const warningMessage = await message.channel.send(`<@${message.author.id}> A hivatkozások nem engedélyezettek.`);
             setTimeout(() => warningMessage.delete(), 5000);
-            const embed = new MessageEmbed()
+            
+            // --- JAVÍTVA: EmbedBuilder használata ---
+            const embed = new EmbedBuilder()
                 .setColor('#FF0000')
                 .setTitle('Bejegyzés törölve – A hivatkozás nem engedélyezett')
                 .setDescription(`Üzenet törölve itt <#${message.channel.id}>`)
-                .addField('Felhasználó', `<@${message.author.id}>`, true)
-                .addField('Üzenet', message.content, true)
-                .addField('Jogosulatlan linkek', unauthorizedLinks.join('\n'));
+                .addFields(
+                    { name: 'Felhasználó', value: `<@${message.author.id}>`, inline: true },
+                    { name: 'Üzenet', value: message.content, inline: true },
+                    { name: 'Jogosulatlan linkek', value: unauthorizedLinks.join('\n') }
+                );
 
             const modLogChannel = message.guild.channels.cache.get(config.logs);
             if (modLogChannel) {
@@ -201,4 +279,3 @@ app.listen(PORT, () => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
-
