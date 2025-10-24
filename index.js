@@ -54,10 +54,10 @@ client.once('ready', async () => {
 });
 
 client.on('presenceUpdate', (oldPresence, newPresence) => {
-  console.log('presenceUpdate event fired for user:', newPresence?.user?.id);
+  // Biztosítjuk, hogy csak a megfelelő felhasználó változásait figyeljük
   if (!newPresence || !newPresence.user) return;
 
-  if(newPresence.user.id === '1095731086513930260') {
+  if (newPresence.user.id === '1095731086513930260') { // Az adott felhasználó ID-ja
     currentStatus = newPresence.status || 'offline';
 
     currentUserData = {
@@ -70,7 +70,10 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       activities: newPresence.activities || []
     };
 
-    // Ellenőrizzük, hogy van-e zenét hallgató tevékenység
+    // Debug: Ellenőrizzük az összes aktivitást, amit a bot lát
+    console.log('Aktivitások:', JSON.stringify(newPresence.activities, null, 2));
+
+    // Zenehallgatás ellenőrzése
     const musicActivity = currentUserData.activities.find(activity => activity.type === 'LISTENING');
     if (musicActivity) {
       console.log('Zenehallgatás:', musicActivity.name);
@@ -78,7 +81,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       console.log('Nincs zenehallgatás');
     }
 
-    // Ellenőrizzük, hogy van-e játékos tevékenység
+    // Játékellenőrzés
     const gameActivity = currentUserData.activities.find(activity => activity.type === 'PLAYING');
     if (gameActivity) {
       console.log('Játék:', gameActivity.name);
