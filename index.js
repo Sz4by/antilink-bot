@@ -116,6 +116,7 @@ function updateApiStatus(userData) {
   })
     .then(response => {
       if (!response.ok) {
+        console.error(`API hiba: ${response.status} ${response.statusText}`);
         throw new Error(`API hiba: ${response.status} ${response.statusText}`);
       }
       return response.json();
