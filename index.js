@@ -234,4 +234,23 @@ client.on('messageCreate', async message => {
                 .setColor('#FF0000')
                 .setTitle('Bejegyzés törölve – A hivatkozás nem engedélyezett')
                 .setDescription(`Üzenet törölve itt <#${message.channel.id}>`)
-                .addField('Felhasználó', `<@${message.author
+                .addField('Felhasználó', `<@${message.author.id}>`, true) // Itt javítottuk a hibát
+                .addField('Üzenet', message.content, true)
+                .addField('Jogosulatlan linkek', unauthorizedLinks.join('\n'));
+
+            const modLogChannel = message.guild.channels.cache.get(config.logs);
+            if (modLogChannel) {
+                modLogChannel.send({ embeds: [embed] });
+            } else {
+                message.channel.send('Jogosulatlan linkek');
+            }
+        }
+    }
+});
+
+// --- PORTON INDÍTÁS ---
+app.listen(PORT, () => {
+  console.log(`Webserver running on port ${PORT}`);
+});
+
+client.login(process.env.CLIENT_TOKEN);
