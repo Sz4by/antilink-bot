@@ -24,12 +24,14 @@ function saveAllowedLinks() {
     fs.writeFileSync(allowedLinksFile, JSON.stringify({ allowedLinks }, null, 2));
 }
 
-const client = new Client({ intents: [
-  GatewayIntentBits.Guilds, 
-  GatewayIntentBits.GuildMessages,
-  GatewayIntentBits.GuildPresences,
-  GatewayIntentBits.GuildMembers
-] });
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds, 
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildMembers
+  ]
+});
 
 let currentStatus = 'offline';
 let currentUserData = null;
