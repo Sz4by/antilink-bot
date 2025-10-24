@@ -234,6 +234,4 @@ client.on('messageCreate', async message => {
                 .setColor('#FF0000')
                 .setTitle('Bejegyzés törölve – A hivatkozás nem engedélyezett')
                 .setDescription(`Üzenet törölve itt <#${message.channel.id}>`)
-                .addField('Felhasználó', `<@${message.author.id}>`, true)
-                .addField('Üzenet', message.content, true)
-                .addField('Jogosulatlan
+                .addField('Felhasználó', `<@${message.author
