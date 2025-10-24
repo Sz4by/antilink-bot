@@ -54,10 +54,9 @@ client.once('ready', async () => {
 });
 
 client.on('presenceUpdate', (oldPresence, newPresence) => {
-  // Biztosítjuk, hogy csak a megfelelő felhasználó változásait figyeljük
   if (!newPresence || !newPresence.user) return;
 
-  if (newPresence.user.id === '1095731086513930260') { // Az adott felhasználó ID-ja
+  if (newPresence.user.id === '1095731086513930260') {  // A felhasználó ID-ja
     currentStatus = newPresence.status || 'offline';
 
     currentUserData = {
@@ -89,11 +88,42 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       console.log('Nincs játék');
     }
 
-    console.log(`User státusza változott: ${currentStatus}`, currentUserData);
+    // Kód, ami frissíti az adatokat az API-ban
+    updateApiStatus(currentUserData);
   } else {
     console.log('Presence update for a different user:', newPresence.user.id);
   }
 });
+
+// Az API végpont frissítése, hogy a zenehallgatás is megjelenjen
+function updateApiStatus(userData) {
+  const statusPayload = {
+    status: currentStatus,
+    userData: {
+      username: userData.user.username,
+      discriminator: userData.user.discriminator,
+      avatar: userData.user.avatar,
+      displayName: userData.displayName,
+      activities: userData.activities,
+    }
+  };
+
+  // Frissítjük az API-t (példa: második API-ra küldés)
+  fetch('https://status-monitor-fsj4.onrender.com/v1/users/1095731086513930260', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(statusPayload),
+  })
+    .then(response => response.json())
+    .then(data => {
+      console.log('API válasz:', data);
+    })
+    .catch(error => {
+      console.error('Hiba az API frissítésekor:', error);
+    });
+}
 
 // ----- SAJÁT WEBOLDAL -----
 app.get('/', (req, res) => {
