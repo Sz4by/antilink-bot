@@ -5,10 +5,8 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config.json');
-// Elindítjuk a másik szkriptet szinkron módon
-const otherScript = require('./restart.js');
 
-console.log("restart.js is running.");
+console.log("Bot elindult.");
 
 const app = express();
 app.use(cors());
@@ -56,7 +54,7 @@ client.once('ready', async () => {
 client.on('presenceUpdate', (oldPresence, newPresence) => {
   if (!newPresence || !newPresence.user) return;
 
-  if (newPresence.user.id === '1095731086513930260') {  // A felhasználó ID-ja
+  if (newPresence.user.id === '1095731086513930260') { // Az adott felhasználó ID-ja
     currentStatus = newPresence.status || 'offline';
 
     currentUserData = {
@@ -69,7 +67,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       activities: newPresence.activities || []
     };
 
-    // Debug: Ellenőrizzük az összes aktivitást, amit a bot lát
+    // Debug: Ellenőrizzük az összes aktivitást
     console.log('Aktivitások:', JSON.stringify(newPresence.activities, null, 2));
 
     // Zenehallgatás ellenőrzése
@@ -88,14 +86,14 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       console.log('Nincs játék');
     }
 
-    // Kód, ami frissíti az adatokat az API-ban
+    // Az aktivitások frissítése az API-ban
     updateApiStatus(currentUserData);
   } else {
     console.log('Presence update for a different user:', newPresence.user.id);
   }
 });
 
-// Az API végpont frissítése, hogy a zenehallgatás is megjelenjen
+// API frissítése
 function updateApiStatus(userData) {
   const statusPayload = {
     status: currentStatus,
@@ -108,7 +106,7 @@ function updateApiStatus(userData) {
     }
   };
 
-  // Frissítjük az API-t (példa: második API-ra küldés)
+  // Frissítjük az adatokat a második API-n
   fetch('https://status-monitor-fsj4.onrender.com/v1/users/1095731086513930260', {
     method: 'POST',
     headers: {
