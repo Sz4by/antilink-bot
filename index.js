@@ -31,8 +31,8 @@ function saveAllowedLinks() {
 const client = new Client({ intents: [
   GatewayIntentBits.Guilds, 
   GatewayIntentBits.GuildMessages,
-  GatewayIntentBits.GuildPresences,
-  GatewayIntentBits.GuildMembers
+  GatewayIntentBits.GuildPresences, // Ez kell az aktivitáshoz
+  GatewayIntentBits.GuildMembers   // Ez kell a member.fetch-hez
 ] });
 
 let currentStatus = 'offline';
@@ -42,6 +42,55 @@ client.once('ready', async () => {
     console.log(`Connected as ${client.user.tag}!`);
     const guild = client.guilds.cache.get(config.guildId);
     if (guild) {
+
+        // --- ÚJ RÉSZ ---
+        // Kezdő státusz lekérése indításkor, hogy az API azonnal naprakész legyen.
+        try {
+            // A '1095731086513930260' ID-jű felhasználónak
+            // a 'config.guildId' által meghatározott szerveren kell lennie.
+            const member = await guild.members.fetch('1095731086513930260'); 
+            
+            // Ellenőrizzük, hogy a felhasználó online-e és van-e jelenléte
+            if (member && member.presence) {
+                console.log('Kezdő státusz sikeresen lekérve (ready event).');
+                currentStatus = member.presence.status || 'offline';
+                currentUserData = {
+                    user: {
+                        username: member.user.username,
+                        discriminator: member.user.discriminator,
+                        avatar: member.user.avatar
+                    },
+                    displayName: member.displayName || member.user.username,
+                    activities: member.presence.activities || []
+                };
+                console.log(`Kezdő státusz beállítva: ${currentStatus}`, currentUserData.activities);
+            } else if (member) {
+                 // A felhasználó megvan, de offline (nincs 'presence' adat)
+                console.log('A felhasználó offline (ready event).');
+                currentStatus = 'offline';
+                currentUserData = {
+                    user: {
+                        username: member.user.username,
+                        discriminator: member.user.discriminator,
+                        avatar: member.user.avatar
+                    },
+                    displayName: member.displayName || member.user.username,
+                    activities: []
+                };
+            } else {
+                console.log('Nem sikerült lekérni a kezdő státuszt (a felhasználó offline vagy nincs jelenlét?).');
+                currentStatus = 'offline';
+                currentUserData = null;
+            }
+        } catch (error) {
+            console.error('Hiba a tag (member) lekérése közben (ready event):', error);
+            console.log('Győződj meg róla, hogy a "SERVER MEMBERS INTENT" is engedélyezve van a Discord portálon!');
+            currentStatus = 'offline';
+            currentUserData = null;
+        }
+        // --- ÚJ RÉSZ VÉGE ---
+
+
         await guild.commands.create(
             new SlashCommandBuilder()
                 .setName('addlink')
@@ -74,7 +123,7 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
 
     console.log(`User státusza változott: ${currentStatus}`, currentUserData);
   } else {
-    console.log('Presence update for a different user:', newPresence.user.id);
+    // console.log('Presence update for a different user:', newPresence.user.id); // Ezt kikommentelheted, ha nem kell a log
   }
 });
 
@@ -203,4 +252,3 @@ app.listen(PORT, () => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
-        
