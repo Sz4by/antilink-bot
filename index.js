@@ -34,118 +34,86 @@ const client = new Client({ intents: [
   GatewayIntentBits.GuildMembers   // Ez kell a member.fetch-hez
 ] });
 
-// --- ÚJ, KÖZPONTI ADAT TÁROLÓ ---
-// Ez fogja tárolni a feldolgozott adatokat, amiket az API visszaad.
+// --- KÖZPONTI ADAT TÁROLÓ ---
 let currentUserData = null;
 
-// --- ÚJ, BŐVÍTETT ADATKINYERŐ FÜGGVÉNY ---
-// Ez a függvény felelős azért, hogy a Discord objektumokból
-// egy tiszta, JSON-barát objektumot hozzon létre.
+// --- ÚJ, LANYARD-STÍLUSÚ ADATKINYERŐ FÜGGVÉNY ---
 function extractPresenceData(member, presence) {
     const user = member?.user || presence?.user;
-    // Ha valamiért nem kapunk user objektumot, nem tudunk mit feldolgozni
     if (!user) return null; 
 
     const activities = presence?.activities || [];
+    const status = presence?.status || 'offline';
+    const clientStatus = presence?.clientStatus || {}; // Pl. { desktop: 'dnd', mobile: 'online' }
+
+    // Keressük meg a Spotify aktivitást
+    const spotifyActivity = activities.find(activity => activity.name === 'Spotify' && activity.type === 2);
     
-    // Keressük meg a különböző aktivitás típusokat
-    const spotify = activities.find(activity => activity.name === 'Spotify' && activity.type === 2); // 2 = Listening
-    const game = activities.find(activity => activity.type === 0); // 0 = Playing
-    const customStatus = activities.find(activity => activity.type === 4); // 4 = Custom Status
-    const streaming = activities.find(activity => activity.type === 1); // 1 = Streaming
+    // Banner lekérése a cache-ből (ezt a 'ready' event feltölti)
+    // Ez azért kell, mert a 'presence.user' objektum nem mindig tartalmazza
+    const cachedUser = client.users.cache.get(user.id);
+    const bannerUrl = cachedUser?.bannerURL({ dynamic: true, size: 1024 }) || null;
 
     return {
-        // Általános állapot
-        status: presence?.status || 'offline',
-        client_status: presence?.clientStatus || null, // Pl. { desktop: 'online', mobile: 'dnd' }
-
-        // Discord Felhasználói adatok (globális)
+        // Ezek azok a mezők, amiket kértél a Lanyard JSON alapján:
+        kv: {}, // A Lanyard struktúra alapján üres objektum
+        
         discord_user: {
             id: user.id,
             username: user.username,
-            global_name: user.globalName, // Az új "@" nélküli név
-            discriminator: user.discriminator, // "0" vagy a régi 4 számjegy
+            avatar: user.avatar,
+            discriminator: user.discriminator,
+            bot: user.bot,
+            global_name: user.globalName || null,
+            
+            // Ezek nem voltak benne a Lanyard listában, de hasznosak
+            // és a 'discord_user' részhez tartoznak:
+            display_name: member?.displayName || user.globalName || user.username,
             avatar_url: user.displayAvatarURL({ dynamic: true, size: 1024 }),
-            banner_url: user.bannerURL({ dynamic: true, size: 1024 }) || null,
-            accent_color: user.accentColor ? `#${user.accentColor.toString(16)}` : null
+            banner_url: bannerUrl 
+            // Megjegyzés: A 'clan', 'collectibles', 'avatar_decoration_data' stb.
+            // mezőket egy egyszerű bot nem tudja lekérni, azokhoz
+            // speciális Lanyard-funkciók kellenek.
         },
+        
+        activities: activities, // A nyers aktivitás lista, pont mint a Lanyard-ban
+        
+        discord_status: status,
+        
+        // Kliens állapotok
+        active_on_discord_web: !!clientStatus.web,
+        active_on_discord_desktop: !!clientStatus.desktop,
+        active_on_discord_mobile: !!clientStatus.mobile,
 
-        // Szerver-specifikus adatok (member)
-        server_member: member ? {
-            display_name: member.displayName, // Nicknév, vagy ha nincs, a globális név
-            nickname: member.nickname || null, // Csak a nicknév
-            server_avatar_url: member.displayAvatarURL({ dynamic: true, size: 1024 }), // Szerver-specifikus avatar
-            joined_at: member.joinedTimestamp, // Mikor lépett a szerverre (Unix timestamp)
-            roles: member.roles.cache
-                .filter(r => r.name !== '@everyone')
-                .sort((a, b) => b.position - a.position) // Rangsorolás (legmagasabb elöl)
-                .map(role => ({
-                    id: role.id,
-                    name: role.name,
-                    color: role.hexColor
-                }))
-        } : null,
-
-        // Feldolgozott aktivitások
-        activities: {
-            spotify: spotify ? {
-                track_id: spotify.syncId,
-                title: spotify.details,
-                artist: spotify.state,
-                album: spotify.assets?.largeText || null,
-                album_art_url: spotify.assets?.largeImageURL() || null,
-                timestamps: spotify.timestamps // { start, end }
-            } : null,
-            game: game ? {
-                name: game.name,
-                details: game.details,
-                state: game.state,
-                timestamps: game.timestamps,
-                assets: game.assets ? {
-                    large_image: game.assets.largeImageURL(),
-                    large_text: game.assets.largeText,
-                    small_image: game.assets.smallImageURL(),
-                    small_text: game.assets.smallText
-                } : null
-            } : null,
-            custom_status: customStatus ? {
-                state: customStatus.state,
-                emoji: customStatus.emoji ? {
-                    name: customStatus.emoji.name,
-                    id: customStatus.emoji.id,
-                    animated: customStatus.emoji.animated,
-                    url: customStatus.emoji.url
-                } : null
-            } : null,
-            streaming: streaming ? {
-                name: streaming.name,
-                details: streaming.details,
-                url: streaming.url
-            } : null
-        },
-        // Nyers aktivitás tömb, hibakereséshez
-        raw_activities: activities 
+        // Spotify adatok
+        listening_to_spotify: !!spotifyActivity, // true vagy false
+        spotify: spotifyActivity ? {
+            track_id: spotifyActivity.syncId,
+            title: spotifyActivity.details,
+            artist: spotifyActivity.state,
+            album: spotifyActivity.assets?.largeText || null,
+            album_art_url: spotifyActivity.assets?.largeImageURL() || null,
+            timestamps: spotifyActivity.timestamps // { start, end }
+        } : null
     };
 }
 
 
-// --- FRISSÍTETT 'READY' ESEMÉNY ---
+// --- 'READY' ESEMÉNY ---
 client.once('ready', async () => {
     console.log(`Connected as ${client.user.tag}!`);
     const guild = client.guilds.cache.get(config.guildId);
     if (guild) {
         try {
-            // Frissítsük a felhasználót a cache-ben, hogy a banner adatok biztosan meglegyenek
-            // Ezt csak egyszer, indításkor csináljuk, hogy ne terheljük az API-t
+            // A 'force: true' frissíti a usert a cache-ben, így kapunk banner adatot
             await client.users.fetch('1095731086513930260', { force: true });
             
-            // Most kérjük le a szerver-specifikus 'member' adatokat
             const member = await guild.members.fetch('1095731086513930260'); 
             
             if (member) {
-                // Feldolgozzuk és elmentjük az adatokat a központi változóba
+                // Feldolgozzuk és elmentjük az adatokat az új Lanyard-stílusú függvénnyel
                 currentUserData = extractPresenceData(member, member.presence);
-                console.log(`Kezdő státusz sikeresen beállítva: ${currentUserData?.status}`);
+                console.log(`Kezdő státusz sikeresen beállítva (Lanyard stílus): ${currentUserData?.discord_status}`);
             } else {
                 console.log('A felhasználó (1095731086513930260) nem tagja a(z) ${config.guildId} szervernek.');
                 currentUserData = null;
@@ -169,22 +137,20 @@ client.once('ready', async () => {
     }
 });
 
-// --- FRISSÍTETT 'PRESENCEUPDATE' ESEMÉNY ---
+// --- 'PRESENCEUPDATE' ESEMÉNY ---
 client.on('presenceUpdate', (oldPresence, newPresence) => {
-  // Csak akkor fussunk le, ha a mi felhasználónkról van szó
   if (!newPresence || !newPresence.user || newPresence.user.id !== '1095731086513930260') {
     return;
   }
   
-  // Használjuk ugyanazt a feldolgozó függvényt, mint indításkor
-  // A 'newPresence.member' tartalmazza a friss 'member' adatokat
+  // Használjuk ugyanazt a feldolgozó függvényt
   currentUserData = extractPresenceData(newPresence.member, newPresence);
-  console.log(`User státusza változott: ${currentUserData?.status}`);
+  console.log(`User státusza változott (Lanyard stílus): ${currentUserData?.discord_status}`);
 });
 
 
 // ----- SAJÁT WEBOLDAL -----
-// (Ez a rész változatlan maradt)
+// (Változatlan)
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -217,34 +183,32 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Statikus fájlok kiszolgálása (maradhat, ha van public mappád)
+// Statikus fájlok kiszolgálása
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- API végpontok ---
 
-// Ez a végpont változatlan maradt, bár lehet, hogy már nincs rá szükséged
+// A régi /api/status végpont
 app.get('/api/status', (req, res) => {
   res.json({
-    // A régi 'currentStatus' változó már nem létezik,
-    // használjuk az új adatobjektumot
-    status: currentUserData?.status || 'offline',
+    status: currentUserData?.discord_status || 'offline',
     userData: currentUserData // Visszaadjuk az egész új objektumot
   });
 });
 
-// --- FRISSÍTETT FŐ API VÉGPONT ---
+// --- A FŐ API VÉGPONT (LANYARD STÍLUSBAN) ---
 app.get('/v1/users/:id', (req, res) => {
   console.log(`Received request for user ID: ${req.params.id}`);
   
   if (req.params.id === '1095731086513930260') {
     if (currentUserData) {
-      // Ha az adat sikeresen be lett töltve, adjuk vissza az egészet
+      // Itt adjuk vissza a kért "success: true" és "data: {...}" struktúrát
       res.json({
         success: true,
         data: currentUserData 
       });
     } else {
-      // Ez akkor fordul elő, ha a bot még tölt, vagy nem találta meg a felhasználót
+      // Hiba, ha a bot még tölt
       res.status(503).json({ 
         success: false, 
         message: 'User data is not available yet. The bot might be starting or the user was not found.' 
@@ -257,12 +221,11 @@ app.get('/v1/users/:id', (req, res) => {
 
 
 // --- Slash parancs ---
-// (Ez a rész változatlan maradt)
+// (Változatlan)
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === 'addlink') {
-        // --- JAVÍTVA ITT (Permissions.FLAGS.ADMINISTRATOR -> PermissionsBitField.Flags.Administrator) ---
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply('Nincs engedélye a parancs használatára.');
         }
@@ -283,7 +246,7 @@ client.on('interactionCreate', async interaction => {
 });
 
 // --- Linkek figyelése és tiltás ---
-// (Ez a rész változatlan maradt)
+// (Változatlan)
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
     if (message.content.includes('http://') || message.content.includes('https://')) {
@@ -319,4 +282,3 @@ app.listen(PORT, () => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
-                    
