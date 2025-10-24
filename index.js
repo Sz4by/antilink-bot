@@ -10,7 +10,6 @@ const otherScript = require('./restart.js');
 
 console.log("restart.js is running.");
 
-
 const app = express();
 app.use(cors());
 
@@ -71,6 +70,22 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       activities: newPresence.activities || []
     };
 
+    // Ellenőrizzük, hogy van-e zenét hallgató tevékenység
+    const musicActivity = currentUserData.activities.find(activity => activity.type === 'LISTENING');
+    if (musicActivity) {
+      console.log('Zenehallgatás:', musicActivity.name);
+    } else {
+      console.log('Nincs zenehallgatás');
+    }
+
+    // Ellenőrizzük, hogy van-e játékos tevékenység
+    const gameActivity = currentUserData.activities.find(activity => activity.type === 'PLAYING');
+    if (gameActivity) {
+      console.log('Játék:', gameActivity.name);
+    } else {
+      console.log('Nincs játék');
+    }
+
     console.log(`User státusza változott: ${currentStatus}`, currentUserData);
   } else {
     console.log('Presence update for a different user:', newPresence.user.id);
@@ -120,6 +135,7 @@ app.get('/api/status', (req, res) => {
     userData: currentUserData
   });
 });
+
 app.get('/v1/users/:id', (req, res) => {
   console.log(`Received request for user ID: ${req.params.id}`);
   if (req.params.id === '1095731086513930260') {
@@ -201,4 +217,3 @@ app.listen(PORT, () => {
 });
 
 client.login(process.env.CLIENT_TOKEN);
-
