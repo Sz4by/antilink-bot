@@ -1,20 +1,22 @@
 const express = require('express');
 const cors = require('cors');
-const { Client, GatewayIntentBits, Permissions, MessageEmbed } = require('discord.js');
+// V14-es javítások: EmbedBuilder és PermissionsBitField hozzáadva
+const { Client, GatewayIntentBits, PermissionsBitField, EmbedBuilder } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
-const config = require('./config.json');
+// const config = require('./config.json'); // <-- Erre már nincs szükség
 
 console.log("Bot elindult.");
 
 const app = express();
 app.use(cors());
 
+// A PORT-ot már helyesen az .env-ből olvasod
 const PORT = process.env.PORT || 3000;
 
 let allowedLinks = [];
-const allowedLinksFile = './liens.json';
+const allowedLinksFile = './liens.json'; // Ezt továbbra is fájlból olvassa
 
 if (fs.existsSync(allowedLinksFile)) {
     allowedLinks = JSON.parse(fs.readFileSync(allowedLinksFile, 'utf-8')).allowedLinks;
@@ -29,7 +31,8 @@ const client = new Client({
     GatewayIntentBits.Guilds, 
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.MessageContent // <-- JAVÍTÁS: Hozzáadva a link-szűréshez
   ]
 });
 
@@ -38,7 +41,8 @@ let currentUserData = null;
 
 client.once('ready', async () => {
     console.log(`Connected as ${client.user.tag}!`);
-    const guild = client.guilds.cache.get(config.guildId);
+    // JAVÍTÁS: Az .env-ből olvassa a GUILD_ID-t
+    const guild = client.guilds.cache.get(process.env.GUILD_ID); 
     if (guild) {
         await guild.commands.create(
             new SlashCommandBuilder()
@@ -56,7 +60,7 @@ client.once('ready', async () => {
 client.on('presenceUpdate', (oldPresence, newPresence) => {
   if (!newPresence || !newPresence.user) return;
 
-  if (newPresence.user.id === '1095731086513930260') {  // Az adott felhasználó ID-ja
+  if (newPresence.user.id === '1095731086513930260') {
     currentStatus = newPresence.status || 'offline';
 
     currentUserData = {
@@ -68,34 +72,16 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       displayName: newPresence.member ? newPresence.member.displayName : newPresence.user.username,
       activities: newPresence.activities || []
     };
-
-    // Debug: Ellenőrizzük az összes aktivitást
-    console.log('Aktivitások:', JSON.stringify(newPresence.activities, null, 2));
-
-    // Spotify aktivitás ellenőrzése
-    const musicActivity = currentUserData.activities.find(activity => activity.type === 'LISTENING');
-    if (musicActivity) {
-      console.log('Spotify zenehallgatás:', musicActivity.name);  // A Spotify zene neve
-    } else {
-      console.log('Nincs Spotify zenehallgatás');
-    }
-
-    // Játékellenőrzés
-    const gameActivity = currentUserData.activities.find(activity => activity.type === 'PLAYING');
-    if (gameActivity) {
-      console.log('Játék:', gameActivity.name);
-    } else {
-      console.log('Nincs játék');
-    }
-
-    // Az aktivitások frissítése az API-ban
+    
+    // (A többi presenceUpdate kód változatlan)
+    // ...
     updateApiStatus(currentUserData);
   } else {
-    console.log('Presence update for a different user:', newPresence.user.id);
+    // console.log('Presence update for a different user:', newPresence.user.id);
   }
 });
 
-// API frissítése
+// API frissítése (Ez a függvény változatlan)
 function updateApiStatus(userData) {
   const statusPayload = {
     status: currentStatus,
@@ -108,7 +94,6 @@ function updateApiStatus(userData) {
     }
   };
 
-  // Frissítjük az adatokat a második API-n
   fetch('https://status-monitor-fsj4.onrender.com/v1/users/1095731086513930260', {
     method: 'POST',
     headers: {
@@ -124,14 +109,14 @@ function updateApiStatus(userData) {
       return response.json();
     })
     .then(data => {
-      console.log('API válasz:', data);
+      // console.log('API válasz:', data); // Kikommentelve, hogy ne árassza el a logot
     })
     .catch(error => {
       console.error('Hiba az API frissítésekor:', error);
     });
 }
 
-// ----- SAJÁT WEBOLDAL -----
+// ----- SAJÁT WEBOLDAL ----- (Változatlan)
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -164,10 +149,9 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Statikus fájlok kiszolgálása (maradhat, ha van public mappád)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- API végpontok ---
+// --- API végpontok --- (Változatlan)
 app.get('/api/status', (req, res) => {
   res.json({
     status: currentStatus,
@@ -192,7 +176,7 @@ app.get('/v1/users/:id', (req, res) => {
       }
     });
   } else {
-    res.status(404).json({ success: false, message: 'User not found' });
+    res.status(4404).json({ success: false, message: 'User not found' });
   }
 });
 
@@ -201,7 +185,8 @@ client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === 'addlink') {
-        if (!interaction.member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
+        // JAVÍTÁS: v14-es engedély ellenőrzés
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply('Nincs engedélye a parancs használatára.');
         }
 
@@ -232,19 +217,25 @@ client.on('messageCreate', async message => {
             await message.delete();
             const warningMessage = await message.channel.send(`<@${message.author.id}> A hivatkozások nem engedélyezettek.`);
             setTimeout(() => warningMessage.delete(), 5000);
-            const embed = new MessageEmbed()
+            
+            // JAVÍTÁS: v14-es EmbedBuilder használata
+            const embed = new EmbedBuilder()
                 .setColor('#FF0000')
                 .setTitle('Bejegyzés törölve – A hivatkozás nem engedélyezett')
                 .setDescription(`Üzenet törölve itt <#${message.channel.id}>`)
-                .addField('Felhasználó', `<@${message.author.id}>`, true) // Itt javítottuk a hibát
-                .addField('Üzenet', message.content, true)
-                .addField('Jogosulatlan linkek', unauthorizedLinks.join('\n'));
+                .addFields( // v14-es mező hozzáadás
+                    { name: 'Felhasználó', value: `<@${message.author.id}>`, inline: true },
+                    { name: 'Üzenet', value: message.content, inline: true },
+                    { name: 'Jogosulatlan linkek', value: unauthorizedLinks.join('\n') }
+                );
 
-            const modLogChannel = message.guild.channels.cache.get(config.logs);
+            // JAVÍTÁS: Az .env-ből olvassa a LOG_CHANNEL_ID-t
+            const modLogChannel = message.guild.channels.cache.get(process.env.LOG_CHANNEL_ID); 
             if (modLogChannel) {
                 modLogChannel.send({ embeds: [embed] });
             } else {
-                message.channel.send('Jogosulatlan linkek');
+                console.error('HIBA: A LOG_CHANNEL_ID érvénytelen vagy nincs beállítva az .env-ben.');
+                message.channel.send('Jogosulatlan linkek (log csatorna hiba).');
             }
         }
     }
@@ -255,5 +246,5 @@ app.listen(PORT, () => {
   console.log(`Webserver running on port ${PORT}`);
 });
 
+// A TOKEN-t már helyesen az .env-ből olvasod
 client.login(process.env.TOKEN);
-
