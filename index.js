@@ -221,7 +221,7 @@ client.on('messageCreate', async message => {
             const warningMessage = await message.channel.send(`<@${message.author.id}> A hivatkozások nem engedélyezettek.`);
             setTimeout(() => warningMessage.delete(), 5000);
             
-            // 4. JAVÍTÁS: v14-es EmbedBuilder használata
+            // 4. JAVÍTÁA: v14-es EmbedBuilder használata
             const embed = new EmbedBuilder()
                 .setColor('#FF0000')
                 .setTitle('Bejegyzés törölve – A hivatkozás nem engedélyezett')
@@ -249,40 +249,18 @@ app.listen(PORT, () => {
   console.log(`Webserver running on port ${PORT}`);
 });
 
-// --- BOT INDÍTÁSA ÉS TOKEN ELLENŐRZÉS ---
-console.log("Megpróbálok bejelentkezni a Discordba a TOKEN segítségével...");
+// --- BOT INDÍTÁSA (BEÉGETETT TOKEN TESZT) ---
+console.log("Megpróbálok bejelentkezni a BEÉGETETT TOKENNEL (CSAK TESZT!)");
+        
+// Ide írd be a 70 karakteres, új tokenedet
+const HARDCODED_TOKEN = "MTI2MzA0NjM0MTY4MTA5MDU5MA.G4R8op.edxfaPjSlEQM00v4s2EJuTGJAjcqFph7jVO1iE";
 
-
-// === JAVÍTOTT DEBUG RÉSZ (Karakter és hossz ellenőrzés + .trim() JAVÍTÁS) ===
-console.log("--- DEBUG START ---");
-const tokenFromEnv = process.env.TOKEN; // Beolvassuk a (valószínűleg hibás) 72 karakteres tokent
-
-if (tokenFromEnv) {
-    console.log("Render .env-ből olvasott EREDETI TOKEN (zárójelek között):");
-    console.log('>' + tokenFromEnv + '<');
-    console.log('Az EREDETI TOKEN hossza: ' + tokenFromEnv.length);
-
-    // === ITT A MEGOLDÁS: LETISZTÍTJUK A TOKENT ===
-    const cleanedToken = tokenFromEnv.trim(); // A .trim() eltávolít minden láthatatlan szóközt és sortörést
-    
-    console.log("A .trim() utáni TISZTA TOKEN (zárójelek között):");
-    console.log('>' + cleanedToken + '<');
-    console.log('A TISZTA TOKEN hossza: ' + cleanedToken.length);
-    console.log("--- DEBUG VÉGE ---");
-
-    // A TISZTA (cleanedToken) változóval jelentkezünk be
-    client.login(cleanedToken)
-      .then(() => {
-        console.log("✅ TOKEN ELFOGADVA: A bejelentkezés sikeres. Várakozás a 'Ready' eseményre...");
-      })
-      .catch((error) => {
-        console.error("❌ TOKEN HIBA: A bot nem tudott bejelentkezni!");
-        console.error(`Részletes hiba: ${error.message}`);
-      });
-
-} else {
-    console.log("A TOKEN változó 'undefined' (nincs beállítva a Render .env-ben).");
-    console.log("--- DEBUG VÉGE ---");
-    // Leállítjuk a processzt, ha nincs token, hogy ne fusson feleslegesen
-    process.exit(1);
-}
+client.login(HARDCODED_TOKEN)
+  .then(() => {
+    console.log("✅ BEÉGETETT TOKEN SIKERES! A bot elindul. Várakozás a 'Ready' eseményre...");
+  })
+  .catch((error) => {
+    // Ez akkor fut le, ha a token HIBÁS
+    console.error("❌ BEÉGETETT TOKEN HIBA!");
+    console.error(`Részletes hiba: ${error.message}`);
+  });
