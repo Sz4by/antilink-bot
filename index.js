@@ -246,5 +246,18 @@ app.listen(PORT, () => {
   console.log(`Webserver running on port ${PORT}`);
 });
 
-// A TOKEN-t már helyesen az .env-ből olvasod
-client.login(process.env.TOKEN);
+// --- BOT INDÍTÁSA ÉS TOKEN ELLENŐRZÉS ---
+console.log("Megpróbálok bejelentkezni a Discordba a TOKEN segítségével...");
+
+client.login(process.env.TOKEN)
+  .then(() => {
+    // Ez akkor fut le, ha a token formaiag HElYES
+    console.log("✅ TOKEN ELFOGADVA: A bejelentkezés sikeres. Várakozás a 'Ready' eseményre...");
+    // A 'client.once('ready', ...)' esemény fogja megerősíteni, hogy online van.
+  })
+  .catch((error) => {
+    // Ez akkor fut le, ha a token HIBÁS, vagy más hiba van (pl. Intent)
+    console.error("❌ TOKEN HIBA: A bot nem tudott bejelentkezni!");
+    console.error("Győződj meg róla, hogy a TOKEN helyes és az Intent-ek be vannak kapcsolva a Discord portálon!");
+    console.error(`Részletes hiba: ${error.message}`);
+  });
