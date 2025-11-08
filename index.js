@@ -252,29 +252,37 @@ app.listen(PORT, () => {
 // --- BOT INDÍTÁSA ÉS TOKEN ELLENŐRZÉS ---
 console.log("Megpróbálok bejelentkezni a Discordba a TOKEN segítségével...");
 
-// === JAVÍTOTT DEBUG RÉSZ (Karakter és hossz ellenőrzés) ===
+
+// === JAVÍTOTT DEBUG RÉSZ (Karakter és hossz ellenőrzés + .trim() JAVÍTÁS) ===
 console.log("--- DEBUG START ---");
-const tokenFromEnv = process.env.TOKEN;
+const tokenFromEnv = process.env.TOKEN; // Beolvassuk a (valószínűleg hibás) 72 karakteres tokent
 
 if (tokenFromEnv) {
-    console.log("Render .env-ből olvasott TOKEN (zárójelek között, hogy lásd a szóközöket):");
+    console.log("Render .env-ből olvasott EREDETI TOKEN (zárójelek között):");
     console.log('>' + tokenFromEnv + '<');
-    console.log('A beolvasott TOKEN hossza: ' + tokenFromEnv.length);
+    console.log('Az EREDETI TOKEN hossza: ' + tokenFromEnv.length);
+
+    // === ITT A MEGOLDÁS: LETISZTÍTJUK A TOKENT ===
+    const cleanedToken = tokenFromEnv.trim(); // A .trim() eltávolít minden láthatatlan szóközt és sortörést
+    
+    console.log("A .trim() utáni TISZTA TOKEN (zárójelek között):");
+    console.log('>' + cleanedToken + '<');
+    console.log('A TISZTA TOKEN hossza: ' + cleanedToken.length);
+    console.log("--- DEBUG VÉGE ---");
+
+    // A TISZTA (cleanedToken) változóval jelentkezünk be
+    client.login(cleanedToken)
+      .then(() => {
+        console.log("✅ TOKEN ELFOGADVA: A bejelentkezés sikeres. Várakozás a 'Ready' eseményre...");
+      })
+      .catch((error) => {
+        console.error("❌ TOKEN HIBA: A bot nem tudott bejelentkezni!");
+        console.error(`Részletes hiba: ${error.message}`);
+      });
+
 } else {
     console.log("A TOKEN változó 'undefined' (nincs beállítva a Render .env-ben).");
+    console.log("--- DEBUG VÉGE ---");
+    // Leállítjuk a processzt, ha nincs token, hogy ne fusson feleslegesen
+    process.exit(1);
 }
-console.log("--- DEBUG VÉGE ---");
-// === DEBUG RÉSZ VÉGE ===
-
-client.login(tokenFromEnv) // Mostantól a fenti 'tokenFromEnv' változót használja
-  .then(() => {
-    // Ez akkor fut le, ha a token formaiag HElYES
-    console.log("✅ TOKEN ELFOGADVA: A bejelentkezés sikeres. Várakozás a 'Ready' eseményre...");
-    // A 'client.once('ready', ...)' esemény fogja megerősíteni, hogy online van.
-  })
-  .catch((error) => {
-    // Ez akkor fut le, ha a token HIBÁS, vagy más hiba van (pl. Intent)
-    console.error("❌ TOKEN HIBA: A bot nem tudott bejelentkezni!");
-    console.error("Győződj meg róla, hogy a TOKEN helyes és az Intent-ek be vannak kapcsolva a Discord portálon!");
-    console.error(`Részletes hiba: ${error.message}`);
-  });
