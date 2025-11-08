@@ -187,7 +187,7 @@ client.on('interactionCreate', async interaction => {
     if (interaction.commandName === 'addlink') {
         // JAVÍTÁS: v14-es engedély ellenőrzés
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return interaction.reply('Nincs engedélye a parancs használatára.');
+            return interaction.reply('Nincs engedélye a parancs használára.');
         }
 
         let newLink = interaction.options.getString('link');
@@ -248,6 +248,13 @@ app.listen(PORT, () => {
 
 // --- BOT INDÍTÁSA ÉS TOKEN ELLENŐRZÉS ---
 console.log("Megpróbálok bejelentkezni a Discordba a TOKEN segítségével...");
+
+// === DEBUG RÉSZ ===
+console.log("--- DEBUG START ---");
+console.log("Render .env-ből olvasott TOKEN változó:");
+console.log(process.env.TOKEN);
+console.log("--- DEBUG VÉGE ---");
+// === DEBUG RÉSZ VÉGE ===
 
 client.login(process.env.TOKEN)
   .then(() => {
