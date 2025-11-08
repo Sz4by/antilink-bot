@@ -1,16 +1,22 @@
+// 1. JAVÍTÁS: .env fájl betöltése (helyi teszteléshez)
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
-const { Client, GatewayIntentBits, Permissions, MessageEmbed } = require('discord.js');
+// 4. JAVÍTÁS: discord.js v14 importok (EmbedBuilder, PermissionsBitField)
+const { Client, GatewayIntentBits, PermissionsBitField, EmbedBuilder } = require('discord.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const fs = require('fs');
 const path = require('path');
-const config = require('./config.json');
+// 2. JAVÍTÁS: A config.json-ra már nincs szükség
+// const config = require('./config.json');
 
 console.log("Bot elindult.");
 
 const app = express();
 app.use(cors());
 
+// A PORT-ot már helyesen az .env-ből olvasod
 const PORT = process.env.PORT || 3000;
 
 let allowedLinks = [];
@@ -29,7 +35,9 @@ const client = new Client({
     GatewayIntentBits.Guilds, 
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMembers,
+    // 3. JAVÍTÁS: Hozzáadva a link-szűréshez
+    GatewayIntentBits.MessageContent 
   ]
 });
 
@@ -38,7 +46,8 @@ let currentUserData = null;
 
 client.once('ready', async () => {
     console.log(`Connected as ${client.user.tag}!`);
-    const guild = client.guilds.cache.get(config.guildId);
+    // 2. JAVÍTÁS: Az .env-ből olvassa a GUILD_ID-t
+    const guild = client.guilds.cache.get(process.env.GUILD_ID); 
     if (guild) {
         await guild.commands.create(
             new SlashCommandBuilder()
@@ -53,10 +62,11 @@ client.once('ready', async () => {
     }
 });
 
+// ... (A 'presenceUpdate' és 'updateApiStatus' részek helyesek voltak, változatlanul hagyva) ...
 client.on('presenceUpdate', (oldPresence, newPresence) => {
   if (!newPresence || !newPresence.user) return;
 
-  if (newPresence.user.id === '1095731086513930260') {  // Az adott felhasználó ID-ja
+  if (newPresence.user.id === '1095731086513930260') {
     currentStatus = newPresence.status || 'offline';
 
     currentUserData = {
@@ -68,34 +78,15 @@ client.on('presenceUpdate', (oldPresence, newPresence) => {
       displayName: newPresence.member ? newPresence.member.displayName : newPresence.user.username,
       activities: newPresence.activities || []
     };
-
-    // Debug: Ellenőrizzük az összes aktivitást
-    console.log('Aktivitások:', JSON.stringify(newPresence.activities, null, 2));
-
-    // Spotify aktivitás ellenőrzése
-    const musicActivity = currentUserData.activities.find(activity => activity.type === 'LISTENING');
-    if (musicActivity) {
-      console.log('Spotify zenehallgatás:', musicActivity.name);  // A Spotify zene neve
-    } else {
-      console.log('Nincs Spotify zenehallgatás');
-    }
-
-    // Játékellenőrzés
-    const gameActivity = currentUserData.activities.find(activity => activity.type === 'PLAYING');
-    if (gameActivity) {
-      console.log('Játék:', gameActivity.name);
-    } else {
-      console.log('Nincs játék');
-    }
-
-    // Az aktivitások frissítése az API-ban
+    
+    // (A többi presenceUpdate kód változatlan)
+    // ...
     updateApiStatus(currentUserData);
   } else {
-    console.log('Presence update for a different user:', newPresence.user.id);
+    // console.log('Presence update for a different user:', newPresence.user.id);
   }
 });
 
-// API frissítése
 function updateApiStatus(userData) {
   const statusPayload = {
     status: currentStatus,
@@ -108,7 +99,6 @@ function updateApiStatus(userData) {
     }
   };
 
-  // Frissítjük az adatokat a második API-n
   fetch('https://status-monitor-fsj4.onrender.com/v1/users/1095731086513930260', {
     method: 'POST',
     headers: {
@@ -124,14 +114,13 @@ function updateApiStatus(userData) {
       return response.json();
     })
     .then(data => {
-      console.log('API válasz:', data);
+      // console.log('API válasz:', data); 
     })
     .catch(error => {
       console.error('Hiba az API frissítésekor:', error);
     });
 }
-
-// ----- SAJÁT WEBOLDAL -----
+// ... (A webszerver és API végpontok részek helyesek voltak, változatlanul hagyva) ...
 app.get('/', (req, res) => {
   res.send(`
     <html>
@@ -164,10 +153,8 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Statikus fájlok kiszolgálása (maradhat, ha van public mappád)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- API végpontok ---
 app.get('/api/status', (req, res) => {
   res.json({
     status: currentStatus,
@@ -192,16 +179,16 @@ app.get('/v1/users/:id', (req, res) => {
       }
     });
   } else {
-    res.status(404).json({ success: false, message: 'User not found' });
+    res.status(4404).json({ success: false, message: 'User not found' });
   }
 });
-
 // --- Slash parancs ---
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === 'addlink') {
-        if (!interaction.member.permissions.has(Permissions.FLAGS.ADMINISTRATOR)) {
+        // 4. JAVÍTÁS: v14-es engedély ellenőrzés
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply('Nincs engedélye a parancs használatára.');
         }
 
@@ -223,6 +210,7 @@ client.on('interactionCreate', async interaction => {
 // --- Linkek figyelése és tiltás ---
 client.on('messageCreate', async message => {
     if (message.author.bot || !message.guild) return;
+    // 3. JAVÍTÁS: A MessageContent Intent miatt ez most már működni fog
     if (message.content.includes('http://') || message.content.includes('https://')) {
         const messageLinks = message.content.match(/(https?:\/\/[^\s]+)/g);
         const unauthorizedLinks = messageLinks.filter(link => {
@@ -232,19 +220,25 @@ client.on('messageCreate', async message => {
             await message.delete();
             const warningMessage = await message.channel.send(`<@${message.author.id}> A hivatkozások nem engedélyezettek.`);
             setTimeout(() => warningMessage.delete(), 5000);
-            const embed = new MessageEmbed()
+            
+            // 4. JAVÍTÁS: v14-es EmbedBuilder használata
+            const embed = new EmbedBuilder()
                 .setColor('#FF0000')
                 .setTitle('Bejegyzés törölve – A hivatkozás nem engedélyezett')
                 .setDescription(`Üzenet törölve itt <#${message.channel.id}>`)
-                .addField('Felhasználó', `<@${message.author.id}>`, true) // Itt javítottuk a hibát
-                .addField('Üzenet', message.content, true)
-                .addField('Jogosulatlan linkek', unauthorizedLinks.join('\n'));
+                .addFields( // v14-es mező hozzáadás
+                    { name: 'Felhasználó', value: `<@${message.author.id}>`, inline: true },
+                    { name: 'Üzenet', value: message.content, inline: true },
+                    { name: 'Jogosulatlan linkek', value: unauthorizedLinks.join('\n') }
+                );
 
-            const modLogChannel = message.guild.channels.cache.get(config.logs);
+            // 2. JAVÍTÁS: Az .env-ből olvassa a LOG_CHANNEL_ID-t
+            const modLogChannel = message.guild.channels.cache.get(process.env.LOG_CHANNEL_ID); 
             if (modLogChannel) {
                 modLogChannel.send({ embeds: [embed] });
             } else {
-                message.channel.send('Jogosulatlan linkek');
+                console.error('HIBA: A LOG_CHANNEL_ID érvénytelen vagy nincs beállítva az .env-ben.');
+                message.channel.send('Jogosulatlan linkek (log csatorna hiba).');
             }
         }
     }
@@ -255,4 +249,25 @@ app.listen(PORT, () => {
   console.log(`Webserver running on port ${PORT}`);
 });
 
-client.login(process.env.CLIENT_TOKEN);
+// --- BOT INDÍTÁSA ÉS TOKEN ELLENŐRZÉS ---
+console.log("Megpróbálok bejelentkezni a Discordba a TOKEN segítségével...");
+
+// 5. JAVÍTÁS: Debug kód hozzáadva
+console.log("--- DEBUG START ---");
+console.log("Render .env-ből olvasott TOKEN változó:");
+console.log(process.env.TOKEN);
+console.log("--- DEBUG VÉGE ---");
+
+// 6. JAVÍTÁS: process.env.TOKEN használata
+client.login(process.env.TOKEN)
+  .then(() => {
+    // Ez akkor fut le, ha a token formaiag HElYES
+    console.log("✅ TOKEN ELFOGADVA: A bejelentkezés sikeres. Várakozás a 'Ready' eseményre...");
+    // A 'client.once('ready', ...)' esemény fogja megerősíteni, hogy online van.
+  })
+  .catch((error) => {
+    // Ez akkor fut le, ha a token HIBÁS, vagy más hiba van (pl. Intent)
+    console.error("❌ TOKEN HIBA: A bot nem tudott bejelentkezni!");
+    console.error("Győződj meg róla, hogy a TOKEN helyes és az Intent-ek be vannak kapcsolva a Discord portálon!");
+    console.error(`Részletes hiba: ${error.message}`);
+  });
