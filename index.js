@@ -255,4 +255,5 @@ app.listen(PORT, () => {
   console.log(`Webserver running on port ${PORT}`);
 });
 
-client.login(process.env.CLIENT_TOKEN);
+client.login(process.env.TOKEN);
+
