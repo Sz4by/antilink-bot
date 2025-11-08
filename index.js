@@ -252,14 +252,21 @@ app.listen(PORT, () => {
 // --- BOT INDÍTÁSA ÉS TOKEN ELLENŐRZÉS ---
 console.log("Megpróbálok bejelentkezni a Discordba a TOKEN segítségével...");
 
-// 5. JAVÍTÁS: Debug kód hozzáadva
+// === JAVÍTOTT DEBUG RÉSZ (Karakter és hossz ellenőrzés) ===
 console.log("--- DEBUG START ---");
-console.log("Render .env-ből olvasott TOKEN változó:");
-console.log(process.env.TOKEN);
-console.log("--- DEBUG VÉGE ---");
+const tokenFromEnv = process.env.TOKEN;
 
-// 6. JAVÍTÁS: process.env.TOKEN használata
-client.login(process.env.TOKEN)
+if (tokenFromEnv) {
+    console.log("Render .env-ből olvasott TOKEN (zárójelek között, hogy lásd a szóközöket):");
+    console.log('>' + tokenFromEnv + '<');
+    console.log('A beolvasott TOKEN hossza: ' + tokenFromEnv.length);
+} else {
+    console.log("A TOKEN változó 'undefined' (nincs beállítva a Render .env-ben).");
+}
+console.log("--- DEBUG VÉGE ---");
+// === DEBUG RÉSZ VÉGE ===
+
+client.login(tokenFromEnv) // Mostantól a fenti 'tokenFromEnv' változót használja
   .then(() => {
     // Ez akkor fut le, ha a token formaiag HElYES
     console.log("✅ TOKEN ELFOGADVA: A bejelentkezés sikeres. Várakozás a 'Ready' eseményre...");
